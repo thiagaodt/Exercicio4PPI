@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRODUTOS</title>
+    <link href="./output.css" rel="stylesheet">
+    <link rel="stylesheet" href="main.css">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-6">
+      <header class="flex justify-between items-center bg-blue-500 text-white py-4 px-6 rounded-lg">
+        <h1 class="text-2xl font-bold">Cadastro de Produtos</h1>
+        <span id="userInfo"></span>
+      </header>
+  
+      <main class="mt-6">
+        <div id="lastAccess" class="text-gray-600 mb-4"></div>
+  
+        <!-- Formulário de Cadastro -->
+        <form id="productForm" class="bg-white p-6 rounded-lg shadow-lg space-y-4">
+          <h2 class="text-xl font-bold">Cadastrar Produto</h2>
+          <div class="grid grid-cols-2 gap-4">
+            <input type="text" id="barcode" placeholder="Código de Barras" class="border rounded-lg p-2" required>
+            <input type="text" id="description" placeholder="Descrição" class="border rounded-lg p-2" required>
+            <input type="text" id="costPrice" placeholder="Preço de Custo" class="border rounded-lg p-2" required>
+            <input type="text" id="salePrice" placeholder="Preço de Venda" class="border rounded-lg p-2" required>
+            <input type="date" id="expiryDate" class="border rounded-lg p-2" required>
+            <input type="number" id="stockQty" placeholder="Quantidade em Estoque" class="border rounded-lg p-2" required>
+            <input type="text" id="manufacturer" placeholder="Fabricante" class="border rounded-lg p-2" required>
+          </div>
+          <button type="submit" class="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600">
+            Cadastrar
+          </button>
+        </form>
+  
+        <!-- Tabela de Produtos -->
+        <div id="productsTable" class="mt-6 bg-white p-6 rounded-lg shadow-lg hidden">
+          <h2 class="text-xl font-bold mb-4">Produtos Cadastrados</h2>
+          <table class="table-auto w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b">
+                <th class="p-2">Código</th>
+                <th class="p-2">Descrição</th>
+                <th class="p-2">Preço de Custo</th>
+                <th class="p-2">Preço de Venda</th>
+                <th class="p-2">Validade</th>
+                <th class="p-2">Estoque</th>
+                <th class="p-2">Fabricante</th>
+              </tr>
+            </thead>
+            <tbody id="productRows"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  
+    <script>
+      // Verifica se o usuário está logado
+      const username = sessionStorage.getItem('username');
+      if (!username) {
+        alert('Você precisa realizar o login.');
+        window.location.href = 'login.html';
+      } else {
+        document.getElementById('userInfo').textContent = `Bem-vindo, ${username}`;
+      }
+  
+      // Exibe último acesso
+      const lastAccess = document.cookie.split('; ').find(row => row.startsWith('lastAccess='));
+      if (lastAccess) {
+        const lastAccessDate = new Date(lastAccess.split('=')[1]);
+        document.getElementById('lastAccess').textContent = `Último acesso: ${lastAccessDate.toLocaleString()}`;
+      }
+      
+      // Função para aplicar máscara
+      function formatCurrency(input) {
+        let value = input.value.replace(/\D/g, ''); // Remove caracteres não numéricos
+        value = (parseInt(value) / 100).toFixed(2); // Converte para formato decimal
+        input.value = `R$ ${value.replace('.', ',')}`; // Adiciona o R$ e formata
+      }
+
+      document.getElementById('costPrice').addEventListener('change', function (e) {
+        formatCurrency(e.target);
+      });
+
+      // Reseta o valor ao foco para evitar erros ao editar
+      document.getElementById('costPrice').addEventListener('focus', function (e) {
+        e.target.value = e.target.value.replace(/[^\d]/g, ''); // Remove o R$ e outros caracteres
+      });
+
+      // Verifica e formata após o foco sair do campo
+      document.getElementById('salePrice').addEventListener('change', function (e) {
+        formatCurrency(e.target);
+      });
+
+      // Reseta o valor ao foco para evitar erros ao editar
+      document.getElementById('salePrice').addEventListener('focus', function (e) {
+        e.target.value = e.target.value.replace(/[^\d]/g, ''); // Remove o R$ e outros caracteres
+      });
+
+      // Gerencia o cadastro de produtos
+      const products = JSON.parse(localStorage.getItem('products')) || [];
+      const productForm = document.getElementById('productForm');
+      const productRows = document.getElementById('productRows');
+      const productsTable = document.getElementById('productsTable');
+  
+      function renderProducts() {
+        productRows.innerHTML = '';
+        products.forEach(product => {
+          const row = document.createElement('tr');
+          row.classList.add('border-b');
+          row.innerHTML = `
+            <td class="p-2">${product.barcode}</td>
+            <td class="p-2">${product.description}</td>
+            <td class="p-2">${product.costPrice}</td>
+            <td class="p-2">${product.salePrice}</td>
+            <td class="p-2">${product.expiryDate}</td>
+            <td class="p-2">${product.stockQty}</td>
+            <td class="p-2">${product.manufacturer}</td>
+          `;
+          productRows.appendChild(row);
+        });
+        productsTable.classList.remove('hidden');
+      }
+  
+      productForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const product = {
+          barcode: document.getElementById('barcode').value,
+          description: document.getElementById('description').value,
+          costPrice: parseFloat(document.getElementById('costPrice').value),
+          salePrice: parseFloat(document.getElementById('salePrice').value),
+          expiryDate: document.getElementById('expiryDate').value,
+          stockQty: parseInt(document.getElementById('stockQty').value),
+          manufacturer: document.getElementById('manufacturer').value,
+        };
+        products.push(product);
+        localStorage.setItem('products', JSON.stringify(products));
+        renderProducts();
+        productForm.reset();
+      });
+  
+      // Renderiza produtos na inicialização
+      renderProducts();
+    </script>
+  </body>
+</html>
+</html>
